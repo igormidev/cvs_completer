@@ -27,7 +27,7 @@ class WyScoutRepository {
           'gender': 'men',
           'objType': 'player',
         },
-        fromMapFunction: (map) => map['wyId'],
+        fromMapFunction: (map) => map['wyId'] == null ? '' : "${map['wyId']}",
       );
 
       playerResponse.fold(

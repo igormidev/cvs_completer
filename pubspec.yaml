@@ -15,6 +15,7 @@ dependencies:
   riverpod: ^2.5.1
   hooks_riverpod:
   flutter_riverpod: ^2.5.1
+  wakelock_plus: ^1.2.4
   collection: ^1.16.0 
   dartz:
   dio:

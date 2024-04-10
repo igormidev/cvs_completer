@@ -17,20 +17,27 @@ import 'package:file_picker/file_picker.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-class MainWidget extends ConsumerWidget {
+class MainWidget extends HookConsumerWidget {
   const MainWidget({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final progressDSFPro = ref.watch(progressDSFProApiProvider);
     final progressWyScout = ref.watch(progressWyScoutApiProvider);
-
+    final TextEditingController minEC = useTextEditingController(text: '0');
+    final TextEditingController maxEC = useTextEditingController(text: '4000');
     final isLoggedData = progressWyScout != null ||
         progressDSFPro != null ||
         (ref.watch(logInProDataProvider) == null &&
             ref.watch(logInBaseDataProvider) == null);
+
+    final isInGetWyScoutIdMode =
+        ref.read(generatorModeStateProvider) == GeneratorMode.getWysoutId;
 
     return Scaffold(
       appBar: AppBar(
@@ -44,7 +51,13 @@ class MainWidget extends ConsumerWidget {
       ),
       body: ListView(
         children: [
-          const LogInFormSection(),
+          Opacity(
+            opacity: isInGetWyScoutIdMode ? 0.5 : 1,
+            child: IgnorePointer(
+              ignoring: isInGetWyScoutIdMode == true,
+              child: const LogInFormSection(),
+            ),
+          ),
           const SizedBox(height: 20),
           const Divider(height: 20),
           const Center(
@@ -68,6 +81,13 @@ class MainWidget extends ConsumerWidget {
                     GeneratorMode.completeAditionalData) return;
                 ref.read(generatorModeStateProvider.notifier).state =
                     GeneratorMode.completeAditionalData;
+                if (!isLoggedData) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('You need to log in to get full data'),
+                    ),
+                  );
+                }
               },
               twoOnTap: () {
                 if (ref.read(generatorModeStateProvider) ==
@@ -80,11 +100,51 @@ class MainWidget extends ConsumerWidget {
           const SizedBox(height: 8),
           const Center(child: SizedBox(width: 420, child: Divider(height: 8))),
           const SizedBox(height: 8),
+          Center(
+            child: SizedBox(
+              width: 420,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: minEC,
+                      decoration: const InputDecoration(
+                        labelText: 'Min (Optional)',
+                        border: OutlineInputBorder(),
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: TextFormField(
+                      controller: maxEC,
+                      decoration: const InputDecoration(
+                        labelText: 'Max (Optional)',
+                        border: OutlineInputBorder(),
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Center(child: SizedBox(width: 420, child: Divider(height: 8))),
+          const SizedBox(height: 8),
           Opacity(
-            opacity: !isLoggedData ? 1 : 0.5,
+            opacity: (!isLoggedData || isInGetWyScoutIdMode) ? 1 : 0.5,
             child: IgnorePointer(
-              ignoring: isLoggedData,
-              child: const ChooseFileWidget(),
+              ignoring: isLoggedData && (isInGetWyScoutIdMode == false),
+              child: ChooseFileWidget(
+                minEC: minEC,
+                maxEC: maxEC,
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -139,7 +199,13 @@ class MainWidget extends ConsumerWidget {
 }
 
 class ChooseFileWidget extends ConsumerStatefulWidget {
-  const ChooseFileWidget({super.key});
+  final TextEditingController minEC;
+  final TextEditingController maxEC;
+  const ChooseFileWidget({
+    super.key,
+    required this.minEC,
+    required this.maxEC,
+  });
   @override
   ConsumerState<ConsumerStatefulWidget> createState() =>
       _ChooseFileWidgetState();
@@ -197,13 +263,21 @@ class _ChooseFileWidgetState extends ConsumerState<ChooseFileWidget> {
                   // We will remove that is not in the range
                   final number = int.tryParse('${row[mapper[CSVColumns.id]!]}');
                   if (number == null) return true;
-                  final espectedRange = 4020 < number && number <= 4100;
+                  final int? typedMinNumber = widget.minEC.text.trim().isEmpty
+                      ? null
+                      : int.tryParse(widget.minEC.text);
+                  final int? typedNumber = widget.minEC.text.trim().isEmpty
+                      ? null
+                      : int.tryParse(widget.minEC.text);
+                  final espectedRange = (typedMinNumber ?? 0) <= number &&
+                      number <= (typedNumber ?? 10000);
                   if (!espectedRange) return true;
                   return false;
                   // <====> REMOVE THIS LINE <====>
                 });
 
                 final allIds = <String>[];
+                final allNames = <String>[];
                 final wyIds = <String>[];
 
                 final isPro = ref.read(isProSelected);
@@ -213,175 +287,192 @@ class _ChooseFileWidgetState extends ConsumerState<ChooseFileWidget> {
                       ? null
                       : '${row[mapper[cvsColumn]!]}';
 
-                  if (id == null || id.replaceAll(' ', '').isEmpty) continue;
-                  allIds.add(id.toString());
+                  if (id != null && id.replaceAll(' ', '').isNotEmpty) {
+                    allIds.add(id.toString());
+                  }
+
                   const wyIdsCvsColumn = CSVColumns.idWyscout;
                   final wyId = row[mapper[wyIdsCvsColumn]!];
-                  if (wyId == null ||
-                      wyId.toString().replaceAll(' ', '').isEmpty) {
-                    continue;
+                  if (wyId != null &&
+                      wyId.toString().replaceAll(' ', '').isNotEmpty) {
+                    wyIds.add(wyId.toString());
                   }
-                  wyIds.add(wyId.toString());
+
+                  const userNameColumn = CSVColumns.fullName;
+                  final name = row[mapper[userNameColumn]!];
+                  if (name != null &&
+                      name.toString().replaceAll(' ', '').isNotEmpty) {
+                    allNames.add(name.toString());
+                  }
                 }
                 if (allIds.isEmpty) return;
 
                 final playerRepo = ref.read(playersRepositoryProvider);
                 final wyRepo = ref.read(wyScoutRepositoryProvider);
 
-                final List<List<dynamic>> newList = [];
+                List<List<dynamic>> newList = [];
 
-                if (isPro) {
-                  await wyRepo.getProUsersStats(wyIds);
-                  await playerRepo.getProUsers(allIds);
-                  if (isProCVSEmpty() && isWiseScoutEmpty()) {
-                    return;
-                  }
-                  final proPlayers = getProPlayerData();
-                  final proPlayersStats = getProPlayerStats();
-
-                  int index = 0;
-                  for (final rawLine in csvBundle) {
-                    final line = [...rawLine];
-                    if (index == 0) {
-                      line.add('CURRENT TEAM ICON');
-                      line.add('CURRENT TEAM NAME');
-                      line.add('CURRENT TEAM COUNTRY CODE');
-                      line.add('CURRENT TEAM CONTRACT ENDED AT');
-                      line.add('CURRENT TEAM LEAGUE ICON');
-                      line.add('CURRENT TEAM LEAGUE NAME');
-                      line.add('CURRENT TEAM LEAGUE COUNTRY CODE');
-
-                      line.add('LENDER TEAM ICON');
-                      line.add('LENDER TEAM NAME');
-                      line.add('LENDER TEAM COUNTRY CODE');
-                      line.add('LENDER TEAM CONTRACT ENDED AT');
-                      line.add('LENDER TEAM LEAGUE ICON');
-                      line.add('LENDER TEAM LEAGUE NAME');
-                      line.add('LENDER TEAM LEAGUE COUNTRY CODE');
-
-                      line.add('FORMER TEAM ICON');
-                      line.add('FORMER TEAM NAME');
-                      line.add('FORMER TEAM COUNTRY CODE');
-                      line.add('FORMER TEAM CONTRACT ENDED AT');
-                      line.add('FORMER TEAM LEAGUE ICON');
-                      line.add('FORMER TEAM LEAGUE NAME');
-                      line.add('FORMER TEAM LEAGUE COUNTRY CODE');
-
-                      line.add('PLAYER STAT');
-                    } else {
-                      final index = mapper[CSVColumns.baseUUID];
-                      final wyindex = mapper[CSVColumns.idWyscout];
-                      final player =
-                          index == null ? null : proPlayers['${line[index]}'];
-                      final inner = wyindex == null ? null : '${line[wyindex]}';
-                      final stat =
-                          inner == null ? null : proPlayersStats[inner];
-                      print('inner: $inner ($stat)');
-                      if (player == null) {
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                      } else {
-                        // <=======> CURRENT TEAM <=======>
-                        line.add(
-                            player.currentTeam?.team.icon.toString() ?? '');
-                        line.add(player.currentTeam?.team.name ?? '');
-                        line.add(player.currentTeam?.team.country.code ?? '');
-                        line.add(player.currentTeam?.contractEndedAt
-                                ?.toIso8601String() ??
-                            '');
-                        line.add(player.currentTeam?.team.league?.icon ?? '');
-                        line.add(player.currentTeam?.team.league?.name ?? '');
-                        line.add(
-                            player.currentTeam?.team.league?.country.code ??
-                                '');
-                        // <=======> CURRENT TEAM <=======>
-
-                        // <=======> LENDER TEAM <=======>
-                        line.add(player.lenderTeam?.team.icon.toString() ?? '');
-                        line.add(player.lenderTeam?.team.name ?? '');
-                        line.add(player.lenderTeam?.team.country.code ?? '');
-                        line.add(player.lenderTeam?.contractEndedAt
-                                ?.toIso8601String() ??
-                            '');
-                        line.add(player.lenderTeam?.team.league?.icon ?? '');
-                        line.add(player.lenderTeam?.team.league?.name ?? '');
-                        line.add(
-                            player.lenderTeam?.team.league?.country.code ?? '');
-                        // <=======> LENDER TEAM <=======>
-
-                        // <=======> FORMER TEAM <=======>
-                        line.add(player.formerTeam?.team.icon.toString() ?? '');
-                        line.add(player.formerTeam?.team.name ?? '');
-                        line.add(player.formerTeam?.team.country.code ?? '');
-                        line.add(player.formerTeam?.contractEndedAt
-                                ?.toIso8601String() ??
-                            '');
-                        line.add(player.formerTeam?.team.league?.icon ?? '');
-                        line.add(player.formerTeam?.team.league?.name ?? '');
-                        line.add(
-                          player.formerTeam?.team.league?.country.code ?? '',
-                        );
-                        // <=======> FORMER TEAM <=======>
-                      }
-
-                      // <=======> USER STATS <=======>
-                      if (stat == null) {
-                        line.add('');
-                      } else {
-                        line.add(stat.toJson());
-                      }
-                      // <=======> USER STATS <=======>
-                    }
-                    index++;
-                    newList.add(line);
-                  }
+                if (ref.read(generatorModeStateProvider) ==
+                    GeneratorMode.getWysoutId) {
+                  newList = await getIdScoutByName(allNames, mapper, csvBundle);
                 } else {
-                  await playerRepo.getBaseUsers(allIds);
-                  if (isBaseCVSEmpty()) {
-                    return;
-                  }
-                  final basePlayers = getBasePlayerData();
-                  int index = 0;
-                  for (final rawLine in csvBundle) {
-                    final line = [...rawLine];
-                    if (index == 0) {
-                      line.add('PLAYER PHOTO');
-                      line.add('PLAYER BIO');
-                    } else {
-                      final index = mapper[CSVColumns.baseUUID];
-                      final player =
-                          index == null ? null : basePlayers[line[index]];
-                      if (player == null) {
-                        line.add('');
-                        line.add('');
-                      } else {
-                        line.add(player.icon?.toString() ?? '');
-                        line.add(player.bio);
-                      }
+                  if (isPro) {
+                    await wyRepo.getProUsersStats(wyIds);
+                    await playerRepo.getProUsers(allIds);
+                    if (isProCVSEmpty() && isWiseScoutEmpty()) {
+                      return;
                     }
-                    index++;
-                    newList.add(line);
+                    final proPlayers = getProPlayerData();
+                    final proPlayersStats = getProPlayerStats();
+
+                    int index = 0;
+                    for (final rawLine in csvBundle) {
+                      final line = [...rawLine];
+                      if (index == 0) {
+                        line.add('CURRENT TEAM ICON');
+                        line.add('CURRENT TEAM NAME');
+                        line.add('CURRENT TEAM COUNTRY CODE');
+                        line.add('CURRENT TEAM CONTRACT ENDED AT');
+                        line.add('CURRENT TEAM LEAGUE ICON');
+                        line.add('CURRENT TEAM LEAGUE NAME');
+                        line.add('CURRENT TEAM LEAGUE COUNTRY CODE');
+
+                        line.add('LENDER TEAM ICON');
+                        line.add('LENDER TEAM NAME');
+                        line.add('LENDER TEAM COUNTRY CODE');
+                        line.add('LENDER TEAM CONTRACT ENDED AT');
+                        line.add('LENDER TEAM LEAGUE ICON');
+                        line.add('LENDER TEAM LEAGUE NAME');
+                        line.add('LENDER TEAM LEAGUE COUNTRY CODE');
+
+                        line.add('FORMER TEAM ICON');
+                        line.add('FORMER TEAM NAME');
+                        line.add('FORMER TEAM COUNTRY CODE');
+                        line.add('FORMER TEAM CONTRACT ENDED AT');
+                        line.add('FORMER TEAM LEAGUE ICON');
+                        line.add('FORMER TEAM LEAGUE NAME');
+                        line.add('FORMER TEAM LEAGUE COUNTRY CODE');
+
+                        line.add('PLAYER STAT');
+                      } else {
+                        final index = mapper[CSVColumns.baseUUID];
+                        final wyindex = mapper[CSVColumns.idWyscout];
+                        final player =
+                            index == null ? null : proPlayers['${line[index]}'];
+                        final inner =
+                            wyindex == null ? null : '${line[wyindex]}';
+                        final stat =
+                            inner == null ? null : proPlayersStats[inner];
+                        print('inner: $inner ($stat)');
+                        if (player == null) {
+                          line.add('');
+                          line.add('');
+                          line.add('');
+                          line.add('');
+                          line.add('');
+                          line.add('');
+                          line.add('');
+
+                          line.add('');
+                          line.add('');
+                          line.add('');
+                          line.add('');
+                          line.add('');
+                          line.add('');
+                          line.add('');
+
+                          line.add('');
+                          line.add('');
+                          line.add('');
+                          line.add('');
+                          line.add('');
+                          line.add('');
+                          line.add('');
+                        } else {
+                          // <=======> CURRENT TEAM <=======>
+                          line.add(
+                              player.currentTeam?.team.icon.toString() ?? '');
+                          line.add(player.currentTeam?.team.name ?? '');
+                          line.add(player.currentTeam?.team.country.code ?? '');
+                          line.add(player.currentTeam?.contractEndedAt
+                                  ?.toIso8601String() ??
+                              '');
+                          line.add(player.currentTeam?.team.league?.icon ?? '');
+                          line.add(player.currentTeam?.team.league?.name ?? '');
+                          line.add(
+                              player.currentTeam?.team.league?.country.code ??
+                                  '');
+                          // <=======> CURRENT TEAM <=======>
+
+                          // <=======> LENDER TEAM <=======>
+                          line.add(
+                              player.lenderTeam?.team.icon.toString() ?? '');
+                          line.add(player.lenderTeam?.team.name ?? '');
+                          line.add(player.lenderTeam?.team.country.code ?? '');
+                          line.add(player.lenderTeam?.contractEndedAt
+                                  ?.toIso8601String() ??
+                              '');
+                          line.add(player.lenderTeam?.team.league?.icon ?? '');
+                          line.add(player.lenderTeam?.team.league?.name ?? '');
+                          line.add(
+                              player.lenderTeam?.team.league?.country.code ??
+                                  '');
+                          // <=======> LENDER TEAM <=======>
+
+                          // <=======> FORMER TEAM <=======>
+                          line.add(
+                              player.formerTeam?.team.icon.toString() ?? '');
+                          line.add(player.formerTeam?.team.name ?? '');
+                          line.add(player.formerTeam?.team.country.code ?? '');
+                          line.add(player.formerTeam?.contractEndedAt
+                                  ?.toIso8601String() ??
+                              '');
+                          line.add(player.formerTeam?.team.league?.icon ?? '');
+                          line.add(player.formerTeam?.team.league?.name ?? '');
+                          line.add(
+                            player.formerTeam?.team.league?.country.code ?? '',
+                          );
+                          // <=======> FORMER TEAM <=======>
+                        }
+
+                        // <=======> USER STATS <=======>
+                        if (stat == null) {
+                          line.add('');
+                        } else {
+                          line.add(stat.toJson());
+                        }
+                        // <=======> USER STATS <=======>
+                      }
+                      index++;
+                      newList.add(line);
+                    }
+                  } else {
+                    await playerRepo.getBaseUsers(allIds);
+                    if (isBaseCVSEmpty()) {
+                      return;
+                    }
+                    final basePlayers = getBasePlayerData();
+                    int index = 0;
+                    for (final rawLine in csvBundle) {
+                      final line = [...rawLine];
+                      if (index == 0) {
+                        line.add('PLAYER PHOTO');
+                        line.add('PLAYER BIO');
+                      } else {
+                        final index = mapper[CSVColumns.baseUUID];
+                        final player =
+                            index == null ? null : basePlayers[line[index]];
+                        if (player == null) {
+                          line.add('');
+                          line.add('');
+                        } else {
+                          line.add(player.icon?.toString() ?? '');
+                          line.add(player.bio);
+                        }
+                      }
+                      index++;
+                      newList.add(line);
+                    }
                   }
                 }
 
@@ -441,5 +532,29 @@ class _ChooseFileWidgetState extends ConsumerState<ChooseFileWidget> {
         content: Text('No file selected'),
       ),
     );
+  }
+
+  Future<List<List<dynamic>>> getIdScoutByName(
+    List<String> allNames,
+    Map<CSVColumns, int> mapper,
+    List<List<dynamic>> csvBundle,
+  ) async {
+    final List<List<dynamic>> newList = [];
+    int index = 0;
+    await ref
+        .read(wyScoutRepositoryProvider)
+        .getAllPlayerWyScoutIDByName(allNames);
+    for (final rawLine in csvBundle) {
+      final line = [...rawLine];
+      final name = line[mapper[CSVColumns.fullName]!];
+      if (index != 0) {
+        final state = ref.read(wyScoutNameIdStateProvider.notifier).state;
+        final wyScoutId = state[name];
+        line[mapper[CSVColumns.idWyscout]!] = wyScoutId ?? '';
+      }
+      index++;
+      newList.add(line);
+    }
+    return newList;
   }
 }

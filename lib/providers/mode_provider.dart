@@ -6,4 +6,4 @@ enum GeneratorMode {
 }
 
 final generatorModeStateProvider =
-    StateProvider((ref) => GeneratorMode.completeAditionalData);
+    StateProvider((ref) => GeneratorMode.getWysoutId);
