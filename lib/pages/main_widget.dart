@@ -320,7 +320,8 @@ class _ChooseFileWidgetState extends ConsumerState<ChooseFileWidget> {
                 const userNameColumn = CSVColumns.fullName;
                 final name = row[mapper[userNameColumn]!];
                 if (name != null &&
-                    name.toString().replaceAll(' ', '').isNotEmpty) {
+                    name.toString().replaceAll(' ', '').isNotEmpty &&
+                    name != 'Full name') {
                   allNames.add(name.toString());
                 }
               }
@@ -340,14 +341,15 @@ class _ChooseFileWidgetState extends ConsumerState<ChooseFileWidget> {
                   csvBundle,
                 );
               } else {
+                await wyRepo.getProUsersStats(wyIds);
+
+                final playersStats = getPlayerStats();
                 if (isPro) {
-                  await wyRepo.getProUsersStats(wyIds);
                   // await playerRepo.getProUsers(allIds);
                   if (isProCVSEmpty() && isWiseScoutEmpty()) {
                     return;
                   }
                   final proPlayers = getProPlayerData();
-                  final proPlayersStats = getProPlayerStats();
 
                   int index = 0;
                   for (final rawLine in csvBundle) {
@@ -384,8 +386,7 @@ class _ChooseFileWidgetState extends ConsumerState<ChooseFileWidget> {
                       final player =
                           index == null ? null : proPlayers['${line[index]}'];
                       final inner = wyindex == null ? null : '${line[wyindex]}';
-                      final stat =
-                          inner == null ? null : proPlayersStats[inner];
+                      final stat = inner == null ? null : playersStats[inner];
                       if (player == null) {
                         line.add('');
                         line.add('');
@@ -467,7 +468,7 @@ class _ChooseFileWidgetState extends ConsumerState<ChooseFileWidget> {
                   }
                 } else {
                   await playerRepo.getBaseUsers(allIds);
-                  if (isBaseCVSEmpty()) {
+                  if (isBaseCVSEmpty() && isWiseScoutEmpty()) {
                     return;
                   }
                   final basePlayers = getBasePlayerData();
@@ -477,16 +478,27 @@ class _ChooseFileWidgetState extends ConsumerState<ChooseFileWidget> {
                     if (index == 0) {
                       line.add('PLAYER PHOTO');
                       line.add('PLAYER BIO');
+                      line.add('PLAYER STAT');
                     } else {
                       final index = mapper[CSVColumns.baseUUID];
                       final player =
                           index == null ? null : basePlayers[line[index]];
+
+                      final wyindex = mapper[CSVColumns.idWyscout];
+                      final inner = wyindex == null ? null : '${line[wyindex]}';
+                      final stat = inner == null ? null : playersStats[inner];
                       if (player == null) {
+                        line.add('');
                         line.add('');
                         line.add('');
                       } else {
                         line.add(player.icon?.toString() ?? '');
                         line.add(player.bio);
+                        if (stat == null) {
+                          line.add('');
+                        } else {
+                          line.add(stat.toJson());
+                        }
                       }
                     }
                     index++;
@@ -539,7 +551,7 @@ class _ChooseFileWidgetState extends ConsumerState<ChooseFileWidget> {
   Map<String, ProPlayer> getProPlayerData() =>
       ref.read(csvProDataProvider.notifier).state;
 
-  Map<String, PlayerStat> getProPlayerStats() =>
+  Map<String, PlayerStat> getPlayerStats() =>
       ref.read(wyScoutStateProvider.notifier).state;
 
   Future<List<List<dynamic>>> getIdScoutByName(

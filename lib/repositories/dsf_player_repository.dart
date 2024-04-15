@@ -28,7 +28,7 @@ class DsfPlayerRepository {
     // for (final id in lista.poolPlayers.map((e) => e.id.toString()).toList()) {
     for (final id in ids) {
       try {
-        if (id.toLowerCase().contains('BASE')) {
+        if (id.toLowerCase().contains('base')) {
           quantity += 1;
           continue;
         }
@@ -62,9 +62,8 @@ class DsfPlayerRepository {
     final int total = ids.length;
     int quantity = 0;
     for (final id in ids) {
-      await Future.delayed(const Duration(milliseconds: 600));
       quantity += 1;
-      if (id.toLowerCase().contains('BASE')) {
+      if (id.toLowerCase().contains('base')) {
         continue;
       }
       final response = await ref.read(restfullBaseClient).get(

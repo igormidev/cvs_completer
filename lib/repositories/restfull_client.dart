@@ -24,8 +24,8 @@ final restfullWyScoutClient = Provider<IRestfullClient>((ref) {
   final client = RestfullClient(
     baseUrl: baseUrl,
   );
-  const username = '';
-  const password = '';
+  const username = 'zrh45l6-l378ebenf-yk0hfao-ku74zxyc47';
+  const password = '(g#za4H&oaY=JJIQ%mX:e2T^M,YMhq';
   final basicAuth = 'Basic ${base64Encode(utf8.encode('$username:$password'))}';
   client.addAnDefaultHeader('Authorization', basicAuth);
   return client;
