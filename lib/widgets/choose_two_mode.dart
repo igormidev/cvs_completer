@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 
 class ChooseTwoMode extends StatelessWidget {
-  final bool isOneSelected;
+  final int selectedIndex;
   final String textOne;
   final String textTwo;
+  final String textThree;
   final void Function() oneOnTap;
   final void Function() twoOnTap;
+  final void Function() threeOnTap;
   const ChooseTwoMode({
     super.key,
-    required this.isOneSelected,
+    required this.selectedIndex,
     required this.textOne,
     required this.textTwo,
     required this.oneOnTap,
     required this.twoOnTap,
+    required this.textThree,
+    required this.threeOnTap,
   });
 
   @override
@@ -21,15 +25,21 @@ class ChooseTwoMode extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         ChooseChipWidget(
-          isSelected: isOneSelected,
+          isSelected: selectedIndex == 0,
           text: textOne,
           onTap: oneOnTap,
         ),
         const SizedBox(width: 10),
         ChooseChipWidget(
-          isSelected: !isOneSelected,
+          isSelected: selectedIndex == 1,
           text: textTwo,
           onTap: twoOnTap,
+        ),
+        const SizedBox(width: 10),
+        ChooseChipWidget(
+          isSelected: selectedIndex == 2,
+          text: textThree,
+          onTap: threeOnTap,
         ),
       ],
     );

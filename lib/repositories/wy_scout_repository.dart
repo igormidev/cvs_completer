@@ -17,6 +17,8 @@ class WyScoutRepository {
     List<String> playersName,
   ) async {
     final int total = playersName.length;
+    ref.read(progressWyScoutApiProvider.notifier).state =
+        Progress(total: total, amount: 0);
     final restfull = ref.read(restfullWyScoutClient);
     int quantity = 0;
     for (final name in playersName) {
@@ -58,9 +60,24 @@ class WyScoutRepository {
     int quantity = 0;
     for (final wyId in wyIds) {
       final carrearResponse = await restfull.get<PlayerStat>(
-        path: '/players/727328/career',
+        path: '/players/$wyId/career',
         queryParameters: {'fetch': 'player', 'details': 'team,competition'},
-        fromMapFunction: (map) => PlayerStat.fromWySouct(map),
+        fromMapFunction: (map) async {
+          final contacts = await restfull.get(
+            path: '/players/$wyId/contractinfo',
+            fromMapFunction: (map) => map,
+          );
+
+          return contacts.fold((contactError) {
+            throw Exception('Error on get contacts: $contactError');
+          }, (contacts) {
+            final newMap = {
+              ...map,
+              ...contacts,
+            };
+            return PlayerStat.fromWySouct(newMap);
+          });
+        },
       );
       // final advancedStats = await restfull.get(
       //   path: '/players/$wyId/advancedstats',

@@ -1,10 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:cvs_completer/core/utils.dart';
 import 'package:cvs_completer/data/variables/team.dart';
-import 'package:dsf_ms_proto/proto/dreamstock/dsf_ms_scout/v3/league.pb.dart'
-    as pb;
-import 'package:dsf_ms_proto/proto/dreamstock/dsf_ms_scout/v3/team.pb.dart'
-    as pb;
 import 'package:dsf_ms_proto/proto/dreamstock/dsf_ms_scout/v3/pool_player.pb.dart'
     as pb;
 import 'package:fixnum/fixnum.dart';

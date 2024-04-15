@@ -2,13 +2,19 @@
 
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 class PlayerStat {
   final String? imageDataURL;
   final int? weight;
+  final String? currentTeamContractExpiration;
+  final String? agency;
   final List<CareerStat> career;
   const PlayerStat({
     required this.imageDataURL,
     required this.weight,
+    required this.currentTeamContractExpiration,
+    required this.agency,
     required this.career,
   });
 
@@ -20,6 +26,13 @@ class PlayerStat {
       weight: (map['player'] as Map?)?['weight'] != null
           ? map['player']['weight'] as int
           : null,
+      currentTeamContractExpiration: map['contractExpiration'] == null
+          ? null
+          : '${map['contractExpiration']}',
+      agency: map['agencies'] == null
+          ? null
+          : (map['agencies'] as List<dynamic>).map((e) => '$e').join(', '),
+      // : '${map['agencies']}',
       career: (map['career'] as List<dynamic>).map((map) {
         final castedMap = map as Map<dynamic, dynamic>;
         return CareerStat.fromWySouct(castedMap);
@@ -27,10 +40,54 @@ class PlayerStat {
     );
   }
 
+  @override
+  String toString() {
+    return 'PlayerStat(imageDataURL: $imageDataURL, weight: $weight, currentTeamContractExpiration: $currentTeamContractExpiration, agency: $agency, career: $career)';
+  }
+
+  @override
+  bool operator ==(covariant PlayerStat other) {
+    if (identical(this, other)) return true;
+
+    return other.imageDataURL == imageDataURL &&
+        other.weight == weight &&
+        other.currentTeamContractExpiration == currentTeamContractExpiration &&
+        other.agency == agency &&
+        listEquals(other.career, career);
+  }
+
+  @override
+  int get hashCode {
+    return imageDataURL.hashCode ^
+        weight.hashCode ^
+        currentTeamContractExpiration.hashCode ^
+        agency.hashCode ^
+        career.hashCode;
+  }
+
+  PlayerStat copyWith({
+    String? imageDataURL,
+    int? weight,
+    String? currentTeamContractExpiration,
+    String? agency,
+    List<CareerStat>? career,
+  }) {
+    return PlayerStat(
+      imageDataURL: imageDataURL ?? this.imageDataURL,
+      weight: weight ?? this.weight,
+      currentTeamContractExpiration:
+          currentTeamContractExpiration ?? this.currentTeamContractExpiration,
+      agency: agency ?? this.agency,
+      career: career ?? this.career,
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'imageDataURL': imageDataURL,
       'weight': weight,
+      'currentTeamContractExpiration': currentTeamContractExpiration,
+      'agency': agency,
       'career': career.map((x) => x.toMap()).toList(),
     };
   }
@@ -40,6 +97,11 @@ class PlayerStat {
       imageDataURL:
           map['imageDataURL'] != null ? map['imageDataURL'] as String : null,
       weight: map['weight'] != null ? map['weight'] as int : null,
+      currentTeamContractExpiration:
+          map['currentTeamContractExpiration'] != null
+              ? map['currentTeamContractExpiration'] as String
+              : null,
+      agency: map['agency'] != null ? map['agency'] as String : null,
       career: List<CareerStat>.from(
         (map['career'] as List<int>).map<CareerStat>(
           (x) => CareerStat.fromMap(x as Map<String, dynamic>),

@@ -1,8 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum GeneratorMode {
+  completeAditionalData,
   getWysoutId,
-  completeAditionalData;
+  joinTwoCVS;
 }
 
 final generatorModeStateProvider =

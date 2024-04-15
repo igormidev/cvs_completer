@@ -1,6 +1,7 @@
 // ignore: lines_longer_than_80_chars
 // ignore_for_file: inference_failure_on_function_invocation, avoid_catches_without_on_clauses
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 import 'package:dartz/dartz.dart';
@@ -23,22 +24,12 @@ final restfullWyScoutClient = Provider<IRestfullClient>((ref) {
   final client = RestfullClient(
     baseUrl: baseUrl,
   );
-  const username = ;
-  const password = ;
-  // const username = r'1nlknth-makc25un4-jqra4as-afya2q3g2r';
-  // const password = r'YlnKwxfxRKy3ff%KgL)LMrMV69+@S-';
+  const username = '';
+  const password = '';
   final basicAuth = 'Basic ${base64Encode(utf8.encode('$username:$password'))}';
   client.addAnDefaultHeader('Authorization', basicAuth);
   return client;
 });
-
-// final restfullProClient = Provider<IRestfullClient>((ref) {
-//   const baseUrl = 'https://api.dsfootball.io/v2/scout';
-//   final client = RestfullClient(
-//     baseUrl: baseUrl,
-//   );
-//   return client;
-// });
 
 abstract class IRestfullClient {
   void addAnDefaultHeader(
@@ -72,8 +63,8 @@ abstract class IRestfullClient {
 }
 
 /// The function will be used to convert a map to a desired object
-typedef FromMapFunction<T> = T Function(Map map);
-typedef FromDynamicFunction<T> = T Function(dynamic map);
+typedef FromMapFunction<T> = FutureOr<T> Function(Map map);
+typedef FromDynamicFunction<T> = FutureOr<T> Function(dynamic map);
 
 class RestfullClient implements IRestfullClient {
   RestfullClient({
@@ -143,11 +134,15 @@ class RestfullClient implements IRestfullClient {
           headers: {..._defaultHeaders, ...?aditionalHeaders},
         ),
       ),
-      (data) {
+      (data) async {
         // ignore: avoid_dynamic_calls
-        final dataAsMap = data['items'] as List<dynamic>;
+        final dataAsMap = data as List<dynamic>;
         final castedMap = dataAsMap.cast<Map<String, dynamic>>();
-        return castedMap.map((e) => fromMapFunction(e)).toList();
+        final List<T> items = [];
+        for (final json in castedMap) {
+          items.add(await fromMapFunction(json));
+        }
+        return items;
       },
     );
   }
@@ -182,7 +177,7 @@ class RestfullClient implements IRestfullClient {
     try {
       final result = await function();
       try {
-        final fromMap = fromMapFunction(result.data);
+        final fromMap = await fromMapFunction(result.data);
         return Right(fromMap);
       } catch (error, stackTrace) {
         log(error.toString(), stackTrace: stackTrace);
