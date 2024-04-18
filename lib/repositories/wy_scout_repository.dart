@@ -1,10 +1,11 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:convert';
-
 import 'package:cvs_completer/data/career_stat.dart';
+import 'package:cvs_completer/data/player_advanced_stats.dart';
+import 'package:cvs_completer/data/championship_stat.dart';
+import 'package:cvs_completer/data/result_player.dart';
 import 'package:cvs_completer/providers/progress_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:cvs_completer/providers/csv_maneger_providers.dart';
 import 'package:cvs_completer/providers/wy_scout_provider.dart';
 import 'package:cvs_completer/repositories/restfull_client.dart';
@@ -59,9 +60,12 @@ class WyScoutRepository {
     final restfull = ref.read(restfullWyScoutClient);
     int quantity = 0;
     for (final wyId in wyIds) {
-      final carrearResponse = await restfull.get<PlayerStat>(
+      final carrearResponse = await restfull.get<ResultPlayer>(
         path: '/players/$wyId/career',
-        queryParameters: {'fetch': 'player', 'details': 'team,competition'},
+        queryParameters: {
+          'fetch': 'player',
+          'details': 'team,competition,season'
+        },
         fromMapFunction: (map) async {
           final contacts = await restfull.get(
             path: '/players/$wyId/contractinfo',
@@ -70,21 +74,55 @@ class WyScoutRepository {
 
           return contacts.fold((contactError) {
             throw Exception('Error on get contacts: $contactError');
-          }, (contacts) {
+          }, (contacts) async {
             final newMap = {
               ...map,
               ...contacts,
             };
-            return PlayerStat.fromWySouct(newMap);
+
+            final result = PlayerStat.fromWySouct(
+              newMap,
+            );
+
+            final careerStats = (map['career'] as List<dynamic>).map((map) {
+              final castedMap = map as Map<dynamic, dynamic>;
+              return CareerStat.fromWySouct(castedMap);
+            }).toList();
+
+            final List<ChampionshipStat> playersResult = [];
+
+            for (final CareerStat careerStat in careerStats) {
+              final playerAdvancedStatInChampionship = await restfull.get(
+                path: '/players/$wyId/advancedstats',
+                queryParameters: {
+                  if (careerStat.compId != null)
+                    'compId': careerStat.compId?.toString() ?? '',
+                },
+                fromMapFunction: (map) {
+                  return PlayerAdvancedStat.fromMap(
+                      (map['total'] as Map).cast());
+                },
+              );
+
+              playerAdvancedStatInChampionship.fold((error) {
+                throw Exception('Error on get player advanced stats: $error');
+              }, (playerAdvancedStat) {
+                playersResult.add(
+                  ChampionshipStat(
+                    career: careerStat,
+                    playerStat: playerAdvancedStat,
+                  ),
+                );
+              });
+            }
+
+            return ResultPlayer(
+              championshipStat: playersResult,
+              playerStat: result,
+            );
           });
         },
       );
-      // final advancedStats = await restfull.get(
-      //   path: '/players/$wyId/advancedstats',
-      //   fromMapFunction: (map) {
-      //     return PlayerStats.fromWYApi(map);
-      //   },
-      // );
       carrearResponse.fold(
         (String error) {
           ref.read(csvProErrorProvider.notifier).state = [
@@ -92,7 +130,7 @@ class WyScoutRepository {
             'ID: $wyId, $error',
           ];
         },
-        (PlayerStat stat) {
+        (ResultPlayer stat) {
           ref.read(wyScoutStateProvider.notifier).state = {
             ...ref.read(wyScoutStateProvider),
             wyId: stat,

@@ -2,10 +2,10 @@
 
 import 'dart:convert';
 import 'package:csv/csv.dart';
-import 'package:cvs_completer/data/career_stat.dart';
 import 'package:cvs_completer/data/dsf_mobile_user.dart';
 import 'package:cvs_completer/data/players/player.dart';
 import 'package:cvs_completer/data/players/pro_csv_mapper.dart';
+import 'package:cvs_completer/data/result_player.dart';
 import 'package:cvs_completer/pages/log_in_form_section.dart';
 import 'package:cvs_completer/providers/csv_maneger_providers.dart';
 import 'package:cvs_completer/providers/mode_provider.dart';
@@ -342,7 +342,6 @@ class _ChooseFileWidgetState extends ConsumerState<ChooseFileWidget> {
                 );
               } else {
                 await wyRepo.getProUsersStats(wyIds);
-
                 final playersStats = getPlayerStats();
                 if (isPro) {
                   // await playerRepo.getProUsers(allIds);
@@ -551,7 +550,7 @@ class _ChooseFileWidgetState extends ConsumerState<ChooseFileWidget> {
   Map<String, ProPlayer> getProPlayerData() =>
       ref.read(csvProDataProvider.notifier).state;
 
-  Map<String, PlayerStat> getPlayerStats() =>
+  Map<String, ResultPlayer> getPlayerStats() =>
       ref.read(wyScoutStateProvider.notifier).state;
 
   Future<List<List<dynamic>>> getIdScoutByName(

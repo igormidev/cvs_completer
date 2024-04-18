@@ -2,20 +2,16 @@
 
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
-
 class PlayerStat {
   final String? imageDataURL;
   final int? weight;
   final String? currentTeamContractExpiration;
   final String? agency;
-  final List<CareerStat> career;
   const PlayerStat({
     required this.imageDataURL,
     required this.weight,
     required this.currentTeamContractExpiration,
     required this.agency,
-    required this.career,
   });
 
   factory PlayerStat.fromWySouct(Map<dynamic, dynamic> map) {
@@ -32,53 +28,6 @@ class PlayerStat {
       agency: map['agencies'] == null
           ? null
           : (map['agencies'] as List<dynamic>).map((e) => '$e').join(', '),
-      // : '${map['agencies']}',
-      career: (map['career'] as List<dynamic>).map((map) {
-        final castedMap = map as Map<dynamic, dynamic>;
-        return CareerStat.fromWySouct(castedMap);
-      }).toList(),
-    );
-  }
-
-  @override
-  String toString() {
-    return 'PlayerStat(imageDataURL: $imageDataURL, weight: $weight, currentTeamContractExpiration: $currentTeamContractExpiration, agency: $agency, career: $career)';
-  }
-
-  @override
-  bool operator ==(covariant PlayerStat other) {
-    if (identical(this, other)) return true;
-
-    return other.imageDataURL == imageDataURL &&
-        other.weight == weight &&
-        other.currentTeamContractExpiration == currentTeamContractExpiration &&
-        other.agency == agency &&
-        listEquals(other.career, career);
-  }
-
-  @override
-  int get hashCode {
-    return imageDataURL.hashCode ^
-        weight.hashCode ^
-        currentTeamContractExpiration.hashCode ^
-        agency.hashCode ^
-        career.hashCode;
-  }
-
-  PlayerStat copyWith({
-    String? imageDataURL,
-    int? weight,
-    String? currentTeamContractExpiration,
-    String? agency,
-    List<CareerStat>? career,
-  }) {
-    return PlayerStat(
-      imageDataURL: imageDataURL ?? this.imageDataURL,
-      weight: weight ?? this.weight,
-      currentTeamContractExpiration:
-          currentTeamContractExpiration ?? this.currentTeamContractExpiration,
-      agency: agency ?? this.agency,
-      career: career ?? this.career,
     );
   }
 
@@ -88,7 +37,6 @@ class PlayerStat {
       'weight': weight,
       'currentTeamContractExpiration': currentTeamContractExpiration,
       'agency': agency,
-      'career': career.map((x) => x.toMap()).toList(),
     };
   }
 
@@ -102,11 +50,6 @@ class PlayerStat {
               ? map['currentTeamContractExpiration'] as String
               : null,
       agency: map['agency'] != null ? map['agency'] as String : null,
-      career: List<CareerStat>.from(
-        (map['career'] as List<int>).map<CareerStat>(
-          (x) => CareerStat.fromMap(x as Map<String, dynamic>),
-        ),
-      ),
     );
   }
 
@@ -125,11 +68,17 @@ class CareerStat {
   final int? substituteIn;
   final int? substituteOnBench;
   final int? substituteOut;
+  final int? compId;
   final String? countryCode;
   final String? teamName;
   final String? teamIconUrl;
   final String? competitionName;
+  final String? startDate;
+  final String? endDate;
+
   const CareerStat({
+    required this.startDate,
+    required this.endDate,
     required this.goals,
     required this.minutesPlayed,
     required this.redCards,
@@ -138,16 +87,69 @@ class CareerStat {
     required this.substituteIn,
     required this.substituteOnBench,
     required this.substituteOut,
+    required this.compId,
     required this.countryCode,
     required this.teamName,
     required this.teamIconUrl,
     required this.competitionName,
   });
 
-  String toJson() => json.encode(toMap());
-
-  factory CareerStat.fromJson(String source) =>
-      CareerStat.fromMap(json.decode(source) as Map<String, dynamic>);
+  factory CareerStat.fromWySouct(Map<dynamic, dynamic> careerMap) {
+    return CareerStat(
+      compId: careerMap['competitionId'] == null
+          ? null
+          : careerMap['competitionId'] as int,
+      startDate: careerMap['season'] == null
+          ? null
+          : careerMap['season']['startDate'] as String?,
+      endDate: careerMap['season'] == null
+          ? null
+          : careerMap['season']['endDate'] as String?,
+      goals: careerMap['goal'] != null ? careerMap['goal'] as int : null,
+      minutesPlayed: careerMap['minutesPlayed'] != null
+          ? careerMap['minutesPlayed'] as int
+          : null,
+      redCards:
+          careerMap['redCards'] != null ? careerMap['redCards'] as int : null,
+      yellowCards: careerMap['yellowCard'] != null
+          ? careerMap['yellowCard'] as int
+          : null,
+      shirtNumber: careerMap['shirtNumber'] != null
+          ? careerMap['shirtNumber'] as int
+          : null,
+      substituteIn: careerMap['substituteIn'] != null
+          ? careerMap['substituteIn'] as int
+          : null,
+      substituteOnBench: careerMap['substituteOnBench'] != null
+          ? careerMap['substituteOnBench'] as int
+          : null,
+      substituteOut: careerMap['substituteOut'] != null
+          ? careerMap['substituteOut'] as int
+          : null,
+      countryCode: careerMap['team'] == null
+          ? null
+          : careerMap['team']['area'] == null
+              ? null
+              : careerMap['team']['area']['alpha2code'] == null
+                  ? null
+                  : careerMap['team']['area']['alpha2code'] as String,
+      teamName: careerMap['team'] == null
+          ? null
+          : careerMap['team']['name'] == null
+              ? null
+              : careerMap['team']['name'] as String,
+      teamIconUrl: careerMap['team'] == null
+          ? null
+          : careerMap['team']['imageDataURL'] == null
+              ? null
+              : careerMap['team']['imageDataURL'] as String,
+      competitionName: careerMap['competition'] == null
+          ? null
+          : careerMap['competition']['name'] == null
+              ? null
+              : careerMap['competition']['name'] as String,
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
@@ -159,10 +161,13 @@ class CareerStat {
       'substituteIn': substituteIn,
       'substituteOnBench': substituteOnBench,
       'substituteOut': substituteOut,
+      'compId': compId,
       'countryCode': countryCode,
       'teamName': teamName,
       'teamIconUrl': teamIconUrl,
       'competitionName': competitionName,
+      'startDate': startDate,
+      'endDate': endDate,
     };
   }
 
@@ -183,6 +188,7 @@ class CareerStat {
           : null,
       substituteOut:
           map['substituteOut'] != null ? map['substituteOut'] as int : null,
+      compId: map['compId'] != null ? map['compId'] as int : null,
       countryCode:
           map['countryCode'] != null ? map['countryCode'] as String : null,
       teamName: map['teamName'] != null ? map['teamName'] as String : null,
@@ -191,62 +197,13 @@ class CareerStat {
       competitionName: map['competitionName'] != null
           ? map['competitionName'] as String
           : null,
+      startDate: map['startDate'] != null ? map['startDate'] as String : null,
+      endDate: map['endDate'] != null ? map['endDate'] as String : null,
     );
   }
 
-  factory CareerStat.fromWySouct(Map<dynamic, dynamic> map) {
-    return CareerStat(
-      goals: map['goal'] != null ? map['goal'] as int : null,
-      minutesPlayed:
-          map['minutesPlayed'] != null ? map['minutesPlayed'] as int : null,
-      redCards: map['redCards'] != null ? map['redCards'] as int : null,
-      yellowCards: map['yellowCard'] != null ? map['yellowCard'] as int : null,
-      shirtNumber:
-          map['shirtNumber'] != null ? map['shirtNumber'] as int : null,
-      substituteIn:
-          map['substituteIn'] != null ? map['substituteIn'] as int : null,
-      substituteOnBench: map['substituteOnBench'] != null
-          ? map['substituteOnBench'] as int
-          : null,
-      substituteOut:
-          map['substituteOut'] != null ? map['substituteOut'] as int : null,
-      countryCode: map['team'] == null
-          ? null
-          : map['team']['area'] == null
-              ? null
-              : map['team']['area']['alpha2code'] == null
-                  ? null
-                  : map['team']['area']['alpha2code'] as String,
-      teamName: map['team'] == null
-          ? null
-          : map['team']['name'] == null
-              ? null
-              : map['team']['name'] as String,
-      teamIconUrl: map['team'] == null
-          ? null
-          : map['team']['imageDataURL'] == null
-              ? null
-              : map['team']['imageDataURL'] as String,
-      competitionName: map['competition'] == null
-          ? null
-          : map['competition']['name'] == null
-              ? null
-              : map['competition']['name'] as String,
-      /*
-      countryCode:
-          ([(map['team'] as Map?)?['area']] as Map?)?['alpha2code'] != null
-              ? map['team']['area']['alpha2code'] as String
-              : null,
-      teamName: (map['team'] as Map?)?['name'] != null
-          ? map['team']['name'] as String
-          : null,
-      teamIconUrl: (map['team'] as Map?)?['imageDataURL'] != null
-          ? map['team']['imageDataURL'] as String
-          : null,
-      competitionName: (map['competition'] as Map?)?['name'] != null
-          ? map['competition']['name'] as String
-          : null,
-      */
-    );
-  }
+  String toJson() => json.encode(toMap());
+
+  factory CareerStat.fromJson(String source) =>
+      CareerStat.fromMap(json.decode(source) as Map<String, dynamic>);
 }
