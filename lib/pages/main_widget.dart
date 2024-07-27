@@ -263,6 +263,12 @@ class _ChooseFileWidgetState extends ConsumerState<ChooseFileWidget> {
                 )
               ];
 
+              /// Remove empty lines
+              csvBundle.removeWhere((row) {
+                if (row.first.toString().trim().isEmpty) return true;
+                return false;
+              });
+
               final csvMapper = CsvMapper.fromIdentifierLines(csvBundle.first);
               final mapper = csvMapper.targetColumnAndCorrespondingIndexInRow;
               final int typedMaxNumber = widget.maxEC.text.trim().isEmpty
@@ -314,7 +320,17 @@ class _ChooseFileWidgetState extends ConsumerState<ChooseFileWidget> {
                 if (wyId != null &&
                     wyId.toString().replaceAll(' ', '').isNotEmpty &&
                     wyId.toString().trim().contains(' ') == false) {
-                  wyIds.add(wyId.toString());
+                  final indexplayerstat = mapper[CSVColumns.playerstat];
+                  if (indexplayerstat != null) {
+                    final item = row[indexplayerstat];
+                    if (item.toString().replaceAll(' ', '').isNotEmpty) {
+                      wyIds.add(wyId.toString());
+                    } else {
+                      wyIds.add(wyId.toString());
+                    }
+                  } else {
+                    wyIds.add(wyId.toString());
+                  }
                 }
 
                 const userNameColumn = CSVColumns.fullName;
@@ -354,31 +370,31 @@ class _ChooseFileWidgetState extends ConsumerState<ChooseFileWidget> {
                   for (final rawLine in csvBundle) {
                     final line = [...rawLine];
                     if (index == 0) {
-                      line.add('CURRENT TEAM ICON');
-                      line.add('CURRENT TEAM NAME');
-                      line.add('CURRENT TEAM COUNTRY CODE');
-                      line.add('CURRENT TEAM CONTRACT ENDED AT');
-                      line.add('CURRENT TEAM LEAGUE ICON');
-                      line.add('CURRENT TEAM LEAGUE NAME');
-                      line.add('CURRENT TEAM LEAGUE COUNTRY CODE');
+                      // line.add('CURRENT TEAM ICON');
+                      // line.add('CURRENT TEAM NAME');
+                      // line.add('CURRENT TEAM COUNTRY CODE');
+                      // line.add('CURRENT TEAM CONTRACT ENDED AT');
+                      // line.add('CURRENT TEAM LEAGUE ICON');
+                      // line.add('CURRENT TEAM LEAGUE NAME');
+                      // line.add('CURRENT TEAM LEAGUE COUNTRY CODE');
 
-                      line.add('LENDER TEAM ICON');
-                      line.add('LENDER TEAM NAME');
-                      line.add('LENDER TEAM COUNTRY CODE');
-                      line.add('LENDER TEAM CONTRACT ENDED AT');
-                      line.add('LENDER TEAM LEAGUE ICON');
-                      line.add('LENDER TEAM LEAGUE NAME');
-                      line.add('LENDER TEAM LEAGUE COUNTRY CODE');
+                      // line.add('LENDER TEAM ICON');
+                      // line.add('LENDER TEAM NAME');
+                      // line.add('LENDER TEAM COUNTRY CODE');
+                      // line.add('LENDER TEAM CONTRACT ENDED AT');
+                      // line.add('LENDER TEAM LEAGUE ICON');
+                      // line.add('LENDER TEAM LEAGUE NAME');
+                      // line.add('LENDER TEAM LEAGUE COUNTRY CODE');
 
-                      line.add('FORMER TEAM ICON');
-                      line.add('FORMER TEAM NAME');
-                      line.add('FORMER TEAM COUNTRY CODE');
-                      line.add('FORMER TEAM CONTRACT ENDED AT');
-                      line.add('FORMER TEAM LEAGUE ICON');
-                      line.add('FORMER TEAM LEAGUE NAME');
-                      line.add('FORMER TEAM LEAGUE COUNTRY CODE');
+                      // line.add('FORMER TEAM ICON');
+                      // line.add('FORMER TEAM NAME');
+                      // line.add('FORMER TEAM COUNTRY CODE');
+                      // line.add('FORMER TEAM CONTRACT ENDED AT');
+                      // line.add('FORMER TEAM LEAGUE ICON');
+                      // line.add('FORMER TEAM LEAGUE NAME');
+                      // line.add('FORMER TEAM LEAGUE COUNTRY CODE');
 
-                      line.add('PLAYER STAT');
+                      // line.add('PLAYER STAT');
                     } else {
                       final index = mapper[CSVColumns.baseUUID];
                       final wyindex = mapper[CSVColumns.idWyscout];
@@ -386,80 +402,24 @@ class _ChooseFileWidgetState extends ConsumerState<ChooseFileWidget> {
                           index == null ? null : proPlayers['${line[index]}'];
                       final inner = wyindex == null ? null : '${line[wyindex]}';
                       final stat = inner == null ? null : playersStats[inner];
-                      if (player == null) {
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
 
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                        line.add('');
-                      } else {
-                        // <=======> CURRENT TEAM <=======>
-                        line.add(
-                            player.currentTeam?.team.icon.toString() ?? '');
-                        line.add(player.currentTeam?.team.name ?? '');
-                        line.add(player.currentTeam?.team.country.code ?? '');
-                        line.add(player.currentTeam?.contractEndedAt
-                                ?.toIso8601String() ??
-                            '');
-                        line.add(player.currentTeam?.team.league?.icon ?? '');
-                        line.add(player.currentTeam?.team.league?.name ?? '');
-                        line.add(
-                            player.currentTeam?.team.league?.country.code ??
-                                '');
-                        // <=======> CURRENT TEAM <=======>
-
-                        // <=======> LENDER TEAM <=======>
-                        line.add(player.lenderTeam?.team.icon.toString() ?? '');
-                        line.add(player.lenderTeam?.team.name ?? '');
-                        line.add(player.lenderTeam?.team.country.code ?? '');
-                        line.add(player.lenderTeam?.contractEndedAt
-                                ?.toIso8601String() ??
-                            '');
-                        line.add(player.lenderTeam?.team.league?.icon ?? '');
-                        line.add(player.lenderTeam?.team.league?.name ?? '');
-                        line.add(
-                            player.lenderTeam?.team.league?.country.code ?? '');
-                        // <=======> LENDER TEAM <=======>
-
-                        // <=======> FORMER TEAM <=======>
-                        line.add(player.formerTeam?.team.icon.toString() ?? '');
-                        line.add(player.formerTeam?.team.name ?? '');
-                        line.add(player.formerTeam?.team.country.code ?? '');
-                        line.add(player.formerTeam?.contractEndedAt
-                                ?.toIso8601String() ??
-                            '');
-                        line.add(player.formerTeam?.team.league?.icon ?? '');
-                        line.add(player.formerTeam?.team.league?.name ?? '');
-                        line.add(
-                          player.formerTeam?.team.league?.country.code ?? '',
-                        );
-                        // <=======> FORMER TEAM <=======>
-                      }
+                      final indexplayerstat = mapper[CSVColumns.playerstat];
 
                       // <=======> USER STATS <=======>
-                      if (stat == null) {
-                        line.add('');
+                      if (indexplayerstat == null) {
+                        if (stat == null) {
+                          line.add('');
+                        } else {
+                          line.add(stat.toJson());
+                        }
                       } else {
-                        line.add(stat.toJson());
+                        if (stat == null) {
+                          line[indexplayerstat] = '';
+                        } else {
+                          line[indexplayerstat] = stat.toJson();
+                        }
                       }
+
                       // <=======> USER STATS <=======>
                     }
                     index++;
@@ -477,6 +437,8 @@ class _ChooseFileWidgetState extends ConsumerState<ChooseFileWidget> {
                     if (index == 0) {
                       line.add('PLAYER PHOTO');
                       line.add('PLAYER BIO');
+
+                      ///9003897
                       line.add('PLAYER STAT');
                     } else {
                       final index = mapper[CSVColumns.baseUUID];
@@ -524,7 +486,7 @@ class _ChooseFileWidgetState extends ConsumerState<ChooseFileWidget> {
 
               // File f = File("$dir/filename.csv");
 
-              // f.writeAsString(csv);
+              // f.writeAsStrin g(csv);
 
               // final rawData = f.readAsBytesSync();
               // // final rawData = f.readAsBytesSync();

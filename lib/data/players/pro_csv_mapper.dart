@@ -37,6 +37,7 @@ enum CSVColumns {
   transfermarktOrOgol('transfermarkt'),
   age('age'),
   dob('dob'),
+  playerstat('playerstat'),
   height('height'),
   dominantfoot('foot'),
   photoLink('photolink'),

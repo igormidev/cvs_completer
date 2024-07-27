@@ -74,7 +74,7 @@ class WyScoutRepository {
 
           return contacts.fold((contactError) {
             throw Exception('Error on get contacts: $contactError');
-          }, (contacts) async {
+          }, (Map<dynamic, dynamic> contacts) async {
             final newMap = {
               ...map,
               ...contacts,
